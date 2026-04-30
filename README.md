@@ -120,7 +120,7 @@ O banco foi estruturado para suportar análises avançadas:
 2. Executar o script SQL presente no projeto
 3. Criar o banco e suas tabelas
 
-
+## Diagrama de DER
 <p align="center">
   <img src="https://raw.githubusercontent.com/devwilliamoliveira/Banco-de-dados-em-sql/main/docs/diagrama_der.png" width="900"/>
 </p>
