@@ -124,3 +124,21 @@ O banco foi estruturado para suportar análises avançadas:
 <p align="center">
   <img src="https://raw.githubusercontent.com/devwilliamoliveira/Banco-de-dados-em-sql/main/docs/diagrama_der.png" width="900"/>
 </p>
+
+## Funcionalidades do Banco
+
+- Gestão de alunos, professores e turmas
+- Controle de notas e frequência
+- Gestão financeira (mensalidades, tesouraria)
+- Controle de recursos humanos (contratos, folha, ponto)
+- Regras de negócio com uso de triggers
+
+---
+
+## Exemplos de Consultas
+
+O projeto inclui consultas SQL para análise de dados, como:
+
+- Média de alunos
+- Controle de inadimplência
+- Frequência escolar
