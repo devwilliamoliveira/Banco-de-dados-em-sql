@@ -1,3 +1,4 @@
+#codigo fonte
 CREATE TABLE tb_pessoa (
   pk_cpf char(11) PRIMARY KEY NOT NULL,
   nome varchar(50) NOT NULL,
