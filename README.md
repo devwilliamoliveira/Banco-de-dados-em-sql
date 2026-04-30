@@ -19,5 +19,5 @@ Desenvolver a estrutura de tabelas, relacionamentos e regras de integridade util
 2. Executar o script SQL
 3. Criar o banco de dados
 
-## 👨‍💻 Autor
+## Autores
 
