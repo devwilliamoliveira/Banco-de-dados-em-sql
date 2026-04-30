@@ -120,6 +120,6 @@ O banco foi estruturado para suportar análises avançadas:
 2. Executar o script SQL presente no projeto
 3. Criar o banco e suas tabelas
 
-## 📊 Diagrama ER (DER)
-
-![DER](docs/DER.png)
+<p align="center">
+  <img src="./der.png" alt="Diagrama ER" width="800"/>
+</p>
