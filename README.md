@@ -119,3 +119,7 @@ O banco foi estruturado para suportar análises avançadas:
 1. Abrir um SGBD (MySQL Workbench ou similar)
 2. Executar o script SQL presente no projeto
 3. Criar o banco e suas tabelas
+
+## 📊 Diagrama ER (DER)
+
+![DER](docs/DER.png)
