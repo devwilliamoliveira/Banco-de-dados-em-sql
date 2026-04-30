@@ -8,7 +8,6 @@ Thumbs.db
 
 # Configurações locais de ferramentas
 .vscode/
-.idea/
 
 # Dumps ou backups grandes (opcional)
 *.bak
