@@ -1,13 +1,13 @@
 # Sistema de Gestão Escolar (Banco de Dados SQL)
 
-## 📌 Descrição
+##  Descrição
 Este projeto consiste na modelagem e implementação de um banco de dados relacional para um sistema de gestão escolar, voltado para instituições de ensino privadas (nível fundamental e médio).
 
 A proposta central é estruturar uma base de dados integrada, capaz de suportar operações acadêmicas, administrativas, financeiras e de recursos humanos, além de permitir análises avançadas com uso de Business Intelligence (BI) e Inteligência Artificial (IA).
 
 ---
 
-## 🎯 Objetivo
+##  Objetivo
 Desenvolver um banco de dados robusto, normalizado e escalável que permita:
 
 - Centralização de dados institucionais
@@ -18,16 +18,16 @@ Desenvolver um banco de dados robusto, normalizado e escalável que permita:
 
 ---
 
-## 🛠 Tecnologias
+##  Linguagem usada
 - SQL (MySQL)
 
 ---
 
-## 🧱 Estrutura do Banco de Dados
+## Estrutura do Banco de Dados
 
 O sistema foi dividido em 3 principais módulos:
 
-### 📚 Módulo Acadêmico
+### Módulo Acadêmico
 Responsável pelo controle pedagógico e desempenho dos alunos.
 
 Principais tabelas:
@@ -40,13 +40,13 @@ Principais tabelas:
 - `tb_aluno_turma`
 - `tb_ocorrencia_disciplinar`
 
-📌 Destaque:
+Destaque:
 - Relação N:N entre alunos e turmas resolvida por `tb_aluno_turma`
 - Controle completo de desempenho acadêmico (notas + frequência + comportamento)
 
 ---
 
-### 💰 Módulo Financeiro
+###  Módulo Financeiro
 Gerencia receitas, despesas e fluxo de caixa da instituição.
 
 Principais tabelas:
@@ -57,13 +57,13 @@ Principais tabelas:
 - `tb_conta_bancaria`
 - `tb_empresas`
 
-📌 Destaque:
+Destaque:
 - Integração com o módulo acadêmico (mensalidades vinculadas aos alunos)
 - Controle completo de fluxo de caixa
 
 ---
 
-### 👨‍💼 Módulo de Recursos Humanos
+### Módulo de Recursos Humanos
 Gerencia colaboradores, contratos e folha de pagamento.
 
 Principais tabelas:
@@ -76,13 +76,13 @@ Principais tabelas:
 - `tb_ferias`
 - `tb_afastamento`
 
-📌 Destaque:
+Destaque:
 - Controle completo da vida funcional do colaborador
 - Integração com módulo acadêmico (professores vinculados às turmas)
 
 ---
 
-## 🔗 Integração entre módulos
+## Integração entre módulos
 
 Fluxo principal do sistema:
 
@@ -90,7 +90,7 @@ Pessoa → Matrícula → Turma → Disciplina → Professor → Contrato → Me
 
 ---
 
-## ⚙️ Regras de Negócio
+## Regras de Negócio
 
 - Um aluno pode estar em várias turmas (N:N)
 - Cada turma possui um único professor
@@ -102,7 +102,7 @@ Pessoa → Matrícula → Turma → Disciplina → Professor → Contrato → Me
 
 ---
 
-## 🤖 BI e Inteligência Artificial
+## BI e Inteligência Artificial
 
 O banco foi estruturado para suportar análises avançadas:
 
@@ -114,7 +114,7 @@ O banco foi estruturado para suportar análises avançadas:
 
 ---
 
-## ▶️ Como executar
+## Como executar
 
 1. Abrir um SGBD (MySQL Workbench ou similar)
 2. Executar o script SQL presente no projeto
