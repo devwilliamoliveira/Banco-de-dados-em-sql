@@ -11,10 +11,10 @@ Desenvolver a estrutura de tabelas, relacionamentos e regras de integridade util
 ## Linguagem usada
 - SQL
 
-## 📂 Estrutura
+## Estrutura
 - `sql/estrutura_banco.sql`: Script de criação do banco
 
-## ▶️ Como executar
+## Como executar
 1. Abrir um SGBD (MySQL Workbench, por exemplo)
 2. Executar o script SQL
 3. Criar o banco de dados
