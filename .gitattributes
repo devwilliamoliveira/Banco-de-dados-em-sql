@@ -1,4 +1,0 @@
-*.java linguist-detectable=false
-*.sql linguist-detectable=true
-
-src/** linguist-language=SQL
