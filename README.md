@@ -141,4 +141,4 @@ O projeto inclui consultas SQL para análise de dados, como:
 
 - Média de alunos
 - Controle de inadimplência
-- Frequência escolar
+- Frequência escolar.
