@@ -1,3 +1,5 @@
+<img width="1402" height="849" alt="der-sisgesc png" src="https://github.com/user-attachments/assets/e04158e0-fd8e-46b1-84ff-b1ab053493da" />
+<img width="1420" height="768" alt="Captura de tela 2026-05-14 123520" src="https://github.com/user-attachments/assets/dd83727d-e87e-4614-a6a5-2fe3412cbb4f" />
 # Sistema de Gestão Escolar (Banco de Dados SQL)
 
 ##  Descrição
@@ -123,7 +125,7 @@ O banco foi estruturado para suportar análises avançadas:
 ## DER
 
 <p align="center">
- <img width="1402" height="849" alt="der-sisgesc png" src="https://github.com/user-attachments/assets/613a1a65-ef98-47c3-9f29-bc52e12e606a" />
+<img width="1402" height="849" alt="der-sisgesc png" src="https://github.com/user-attachments/assets/76fdd827-cb68-42f5-9f54-a4d8507d1ace" />
 </p>
 
 
