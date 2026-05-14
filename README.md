@@ -96,7 +96,6 @@ Pessoa → Matrícula → Turma → Disciplina → Professor → Contrato → Me
 ## Regras de Negócio
 
 - Um aluno pode estar em várias turmas (N:N)
-- Cada turma possui um único professor
 - Notas devem estar entre 0 e 10
 - Frequência é registrada por aula
 - Mensalidades só existem para alunos matriculados
