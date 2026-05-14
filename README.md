@@ -121,8 +121,9 @@ O banco foi estruturado para suportar análises avançadas:
 3. Criar o banco e suas tabelas
 
 ## DER
+
 <p align="center">
-  <img src="https://raw.githubusercontent.com/devwilliamoliveira/Banco-de-dados-em-sql/main/docs/diagrama_der.png" width="900"/>
+  <img src="./assets/diagrama-banco.png" alt="DER SisGESC" width="1200"/>
 </p>
 
 ## Funcionalidades do Banco
