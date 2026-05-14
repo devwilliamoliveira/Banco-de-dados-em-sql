@@ -123,8 +123,9 @@ O banco foi estruturado para suportar análises avançadas:
 ## DER
 
 <p align="center">
-  <img src="assets/der-sisgesc.png" alt="DER SisGESC" width="1400"/>
+ <img width="1402" height="849" alt="der-sisgesc png" src="https://github.com/user-attachments/assets/613a1a65-ef98-47c3-9f29-bc52e12e606a" />
 </p>
+
 
 
 ## Funcionalidades do Banco
