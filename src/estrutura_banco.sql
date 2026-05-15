@@ -1,4 +1,10 @@
-#codigo fonte
+USE mysql;
+DROP DATABASE IF EXISTS SisGEsc;
+
+
+CREATE DATABASE SisGEsc;
+USE SisGEsc;
+
 CREATE TABLE tb_pessoa (
   pk_cpf char(11) PRIMARY KEY NOT NULL,
   nome varchar(50) NOT NULL,
@@ -6,7 +12,7 @@ CREATE TABLE tb_pessoa (
   data_nasc date NOT NULL,
   sexo enum('Masculino','Feminino','Outros') NOT NULL DEFAULT 'Outros',
   CONSTRAINT chk_cpf_format CHECK (pk_cpf REGEXP '^[0-9]{11}$'),
-  CONSTRAINT chk_data_nasc CHECK (data_nasc > '1920-01-01' AND data_nasc < CURRENT_DATE)
+  CONSTRAINT chk_data_nasc CHECK (data_nasc > '1920-01-01')
 );
 
 CREATE TABLE tb_tipo_afastamento (
@@ -21,16 +27,16 @@ CREATE TABLE tb_contrato (
   data_admissao date NOT NULL,
   fk_cpf char(11) NOT NULL,
   PRIMARY KEY (pk_id_contrato),
-  FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT unq_contrato_real UNIQUE (fk_cpf, data_admissao, pk_cargo)
 );
 
 CREATE TABLE tb_folha_pagamento (
   salario_base decimal(10,2) NOT NULL,
-  salario_liquido decimal(10,2) NOT NULL,
   fk_id_contrato int NOT NULL,
-  pk_mes_referencia date PRIMARY KEY,
-  FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT chk_coerencia_salarial CHECK (salario_base >= salario_liquido AND salario_liquido >= 0)
+  pk_mes_referencia date NOT NULL,
+  PRIMARY KEY (fk_id_contrato, pk_mes_referencia),
+  FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE tb_beneficios (
@@ -41,8 +47,7 @@ CREATE TABLE tb_beneficios (
   fk_id_contrato int NOT NULL,
   fk_mes_referencia date,
   PRIMARY KEY (fk_id_contrato, fk_mes_referencia),
-  FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE,
-  FOREIGN KEY (fk_mes_referencia) REFERENCES tb_folha_pagamento (pk_mes_referencia) ON UPDATE CASCADE ON DELETE CASCADE
+  FOREIGN KEY (fk_id_contrato, fk_mes_referencia) REFERENCES tb_folha_pagamento (fk_id_contrato, pk_mes_referencia) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE tb_descontos (
@@ -51,10 +56,9 @@ CREATE TABLE tb_descontos (
   faltas decimal(10,2) NOT NULL,
   atrasos decimal(10,2) NOT NULL,
   fk_id_contrato int NOT NULL,
-  fk_mes_referencia date,
+  fk_mes_referencia date NOT NULL,
   PRIMARY KEY (fk_id_contrato, fk_mes_referencia),
-  FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE,
-  FOREIGN KEY (fk_mes_referencia) REFERENCES tb_folha_pagamento (pk_mes_referencia) ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (fk_id_contrato, fk_mes_referencia) REFERENCES tb_folha_pagamento (fk_id_contrato, pk_mes_referencia) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT chk_descontos_validos CHECK (inss >= 0 AND fgts >= 0 AND faltas >= 0 AND atrasos >= 0)
 );
 
@@ -92,13 +96,21 @@ CREATE TABLE tb_ferias (
 );
 
 CREATE TABLE tb_afastamento (
-  inicio_afastamento datetime NOT NULL,
+  inicio_afastamento date NOT NULL,
   fim_afastamento date NOT NULL,
   fk_cid_afastamento char(5),
   fk_id_contrato int NOT NULL,
   PRIMARY KEY (inicio_afastamento, fk_id_contrato),
   FOREIGN KEY (fk_cid_afastamento) REFERENCES tb_tipo_afastamento (pk_cid_afastamento) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+
+CREATE TABLE tb_empresas (
+  pk_cnpj char(14) PRIMARY KEY NOT NULL,
+  razao_social varchar(100) NOT NULL,
+  data_criacao date NOT NULL,
+  categoria_servico varchar(200) DEFAULT 'Outros'
 );
 
 CREATE TABLE tb_endereco (
@@ -109,12 +121,16 @@ CREATE TABLE tb_endereco (
   bairro varchar(50) NOT NULL,
   cidade varchar(50) NOT NULL,
   estado varchar(50) NOT NULL,
-  fk_cpf char(11) NOT NULL,
-  fk_cnpj char(14) NOT NULL,
+  fk_cpf char(11),
+  fk_cnpj char(14),
   PRIMARY KEY (pk_cep, pk_complemento, pk_numero),
   CONSTRAINT chk_cep_format CHECK (pk_cep REGEXP '^[0-9]{8}$'),
   FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT chk_dono_endereco CHECK (
+    (fk_cpf IS NOT NULL AND fk_cnpj IS NULL) OR 
+    (fk_cpf IS NULL AND fk_cnpj IS NOT NULL)
+  )
 );
 
 CREATE TABLE tb_email (
@@ -124,7 +140,8 @@ CREATE TABLE tb_email (
   PRIMARY KEY (pk_email),
   FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT chk_email_format CHECK (pk_email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[[A-Za-z]]{2,}$')
+
+  CONSTRAINT chk_email_format CHECK (pk_email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
 CREATE TABLE tb_telefone (
@@ -132,40 +149,23 @@ CREATE TABLE tb_telefone (
   pk_numero char(9) NOT NULL,
   tipo enum('Residencial','Celular') NOT NULL DEFAULT 'Celular',
   ativo bool NOT NULL,
-  fk_cpf char(11) NOT NULL,
-  fk_cnpj char(14) NOT NULL,
+  fk_cpf char(11),
+  fk_cnpj char(14),
   PRIMARY KEY (pk_ddd, pk_numero),
   FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
-DELIMITER //
-CREATE TRIGGER tg_bloquear_pgto_contrato_inativo
-BEFORE INSERT ON tb_folha_pagamento
-FOR EACH ROW
-BEGIN
-    DECLARE v_status BOOLEAN;
-    SELECT status_contrato INTO v_status FROM tb_contrato WHERE pk_id_contrato = NEW.fk_id_contrato;
-    IF v_status = FALSE THEN
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Erro: Não é possível gerar folha para contrato inativo.';
-    END IF;
-END; //
-DELIMITER ;
-
-CREATE TABLE tb_empresas (
-  pk_cnpj char(14) PRIMARY KEY NOT NULL,
-  razao_social varchar(100) NOT NULL,
-  data_criacao date NOT NULL,
-  categoria_servico varchar(200) DEFAULT 'Outros'
+  FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT chk_dono_telefone CHECK (
+    (fk_cpf IS NOT NULL AND fk_cnpj IS NULL) OR 
+    (fk_cpf IS NULL AND fk_cnpj IS NOT NULL)
+  )
 );
 
 CREATE TABLE tb_tesouraria (
   pk_id_transacao int NOT NULL AUTO_INCREMENT,
   pk_data_movimentacao datetime NOT NULL,
   saldo decimal(12,2) NOT NULL CHECK (saldo >= 0),
-  saida decimal(12,2) CHECK (saida >= 0) DEFAULT 0,
-  entrada decimal(12,2) CHECK (entrada >= 0) DEFAULT 0,
+  saida decimal(12,2) DEFAULT 0 CHECK (saida >= 0),
+  entrada decimal(12,2) DEFAULT 0 CHECK (entrada >= 0),
   descricao_movimentacao text,
   PRIMARY KEY (pk_id_transacao, pk_data_movimentacao),
   CONSTRAINT chk_movimentacao CHECK (saida >= 0 AND entrada >= 0)
@@ -174,55 +174,28 @@ CREATE TABLE tb_tesouraria (
 CREATE TABLE tb_contas_a_pagar (
   pk_nf varchar(50) NOT NULL,
   descricao text,
-  valor decimal(10,2) NOT NULL CHECK (valor >= 0) DEFAULT 0,
+  valor decimal(10,2) NOT NULL DEFAULT 0 CHECK (valor >= 0),
   data_vencimento date NOT NULL,
   parcelas varchar(2),
-  fk_id_transacao int NOT NULL AUTO_INCREMENT,
+  fk_id_transacao int NOT NULL,
   fk_data_movimentacao datetime NOT NULL,
   fk_cnpj char(14) NOT NULL,
   PRIMARY KEY (pk_nf, fk_cnpj),
-  FOREIGN KEY (fk_id_transacao) REFERENCES tb_tesouraria (pk_id_transacao) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_data_movimentacao) REFERENCES tb_tesouraria (pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
+  FOREIGN KEY (fk_id_transacao, fk_data_movimentacao) REFERENCES tb_tesouraria (pk_id_transacao, pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-CREATE TABLE tb_filial_empresa (
-  fk_cep_fornec char(8) NOT NULL,
-  fk_numero_fornec varchar(5) NOT NULL,
-  fk_complemento_fornec varchar(50) NOT NULL,
-  fk_bairro varchar(50) NOT NULL,
-  fk_email varchar(50) NOT NULL,
-  fk_cnpj char(14) NOT NULL,
-  fk_ddd varchar(5) NOT NULL,
-  fk_ddi varchar(15) NOT NULL,
-  fk_numero varchar(15) NOT NULL,
-  PRIMARY KEY (
-    fk_cep_fornec, fk_numero_fornec, fk_complemento_fornec, fk_bairro,
-    fk_email, fk_cnpj, fk_ddd, fk_ddi, fk_numero
-  ),
-  FOREIGN KEY (fk_cep_fornec) REFERENCES tb_endereco_empresas (pk_cep_fornec) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_numero_fornec) REFERENCES tb_endereco_empresas (pk_numero_fornec) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_complemento_fornec) REFERENCES tb_endereco_empresas (pk_complemento_fornec) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_bairro) REFERENCES tb_endereco_empresas (pk_bairro) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_email) REFERENCES tb_email (pk_email) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_ddd) REFERENCES tb_telefone (pk_ddd) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_ddi) REFERENCES tb_telefone (pk_ddi) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_numero) REFERENCES tb_telefone (pk_numero) ON UPDATE CASCADE ON DELETE RESTRICT
-);
-
 CREATE TABLE tb_contas_a_receber (
-  pk_danfe blob NOT NULL,
-  valor_a_receber decimal(10,2) NOT NULL CHECK (valor_a_receber >= 0) DEFAULT 0,
+  pk_danfe varchar(50) NOT NULL,
+  valor_a_receber decimal(10,2) NOT NULL DEFAULT 0 CHECK (valor_a_receber >= 0),
   data_recebimento date NOT NULL,
   status_pagamento enum('Aberto','Pago','Inadimplente') NOT NULL DEFAULT 'Aberto',
   porcentagem_juros decimal(5,2),
-  fk_id_transacao int NOT NULL AUTO_INCREMENT,
+  fk_id_transacao int NOT NULL,
   fk_data_movimentacao datetime NOT NULL,
   fk_cnpj char(14) NOT NULL,
   PRIMARY KEY (pk_danfe, fk_cnpj),
-  FOREIGN KEY (fk_id_transacao) REFERENCES tb_tesouraria (pk_id_transacao) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_data_movimentacao) REFERENCES tb_tesouraria (pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
+  FOREIGN KEY (fk_id_transacao, fk_data_movimentacao) REFERENCES tb_tesouraria (pk_id_transacao, pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
   FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -234,11 +207,10 @@ CREATE TABLE tb_mensalidades (
   pk_danfe_mensalidade varchar(50) NOT NULL,
   parcela_numero tinyint,
   status_recebimento enum('Aberto','Pago','Inadimplente') NOT NULL DEFAULT 'Aberto',
-  fk_id_transacao int NOT NULL AUTO_INCREMENT,
+  fk_id_transacao int NOT NULL,
   fk_data_movimentacao datetime NOT NULL,
   PRIMARY KEY (fk_ra, pk_vencimento, pk_danfe_mensalidade),
-  FOREIGN KEY (fk_id_transacao) REFERENCES tb_tesouraria (pk_id_transacao) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_data_movimentacao) REFERENCES tb_tesouraria (pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
+  FOREIGN KEY (fk_id_transacao, fk_data_movimentacao) REFERENCES tb_tesouraria (pk_id_transacao, pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT chk_desconto_mensalidade CHECK (valor_final <= valor_completo AND valor_final >= 0),
   CONSTRAINT chk_parcela_limite CHECK (parcela_numero BETWEEN 1 AND 12)
 );
@@ -247,12 +219,11 @@ CREATE TABLE tb_conta_bancaria (
   pk_agencia char(4) NOT NULL,
   pk_conta char(6) NOT NULL,
   fk_cnpj char(14) NOT NULL,
-  fk_id_transacao int NOT NULL AUTO_INCREMENT,
+  fk_id_transacao int NOT NULL,
   fk_data_movimentacao datetime NOT NULL,
   PRIMARY KEY (pk_agencia, pk_conta, fk_cnpj),
   FOREIGN KEY (fk_cnpj) REFERENCES tb_empresas (pk_cnpj) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_id_transacao) REFERENCES tb_tesouraria (pk_id_transacao) ON UPDATE CASCADE ON DELETE RESTRICT,
-  FOREIGN KEY (fk_data_movimentacao) REFERENCES tb_tesouraria (pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT
+  FOREIGN KEY (fk_id_transacao, fk_data_movimentacao) REFERENCES tb_tesouraria (pk_id_transacao, pk_data_movimentacao) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE tb_pagamento_salario (
@@ -261,7 +232,6 @@ CREATE TABLE tb_pagamento_salario (
     pk_mes_referencia date NOT NULL,
     data_emissao_holerite timestamp DEFAULT CURRENT_TIMESTAMP,
     valor_bruto decimal(10,2) NOT NULL,
-    valor_liquido_pago decimal(10,2) NOT NULL,
     status_pagamento enum('Pendente', 'Pago', 'Estornado') DEFAULT 'Pendente',
     fk_id_transacao int,
     fk_data_movimentacao datetime,
@@ -271,8 +241,8 @@ CREATE TABLE tb_pagamento_salario (
 );
 
 CREATE TABLE tb_matricula (
-	pk_ra int NOT NULL AUTO_INCREMENT UNIQUE,
-    fk_cpf char(11) NOT NULL,
+    pk_ra int NOT NULL AUTO_INCREMENT UNIQUE,
+    fk_cpf char(11) NOT NULL UNIQUE,
     data_matricula date NOT NULL,
     status_matricula enum('Ativa','Trancada','Cancelada','Concluída') NOT NULL,
     PRIMARY KEY (pk_ra),
@@ -280,18 +250,27 @@ CREATE TABLE tb_matricula (
     CONSTRAINT chk_data_matricula CHECK (data_matricula >= '2000-01-01')
 );
 
+CREATE TABLE tb_desconto_aluno (
+    fk_ra INT NOT NULL,
+    tipo_desconto ENUM('Filho de Funcionário', 'Irmão na Escola', 'Desempenho Acadêmico', 'Outros') NOT NULL,
+    percentual DECIMAL(5,2) NOT NULL,
+    PRIMARY KEY (fk_ra, tipo_desconto),
+    FOREIGN KEY (fk_ra) REFERENCES tb_matricula(pk_ra) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_limite_percentual CHECK (percentual > 0 AND percentual <= 100)
+);
+
 CREATE TABLE tb_professor (
-	fk_cpf char(11) NOT NULL,
+    fk_cpf char(11) NOT NULL,
     fk_id_contrato int NOT NULL,
     area_formacao varchar(50),
     biografia_resumida text,
-    PRIMARY KEY (fk_cpf),
+    PRIMARY KEY (fk_cpf, fk_id_contrato),
     FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (fk_id_contrato) REFERENCES tb_contrato (pk_id_contrato) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE tb_disciplina (
-	pk_codigo_disciplina varchar(5) NOT NULL,
+    pk_codigo_disciplina varchar(5) NOT NULL,
     nome_disciplina varchar(50),
     ementa text,
     PRIMARY KEY (pk_codigo_disciplina)
@@ -308,22 +287,31 @@ CREATE TABLE tb_frequencia (
 );
 
 CREATE TABLE tb_turmas(
-	fk_codigo_disciplina varchar(5) NOT NULL,
-    fk_cpf_professor char(11) NOT NULL,
     pk_ano_letivo date NOT NULL,
     pk_sigla_turma char(2) NOT NULL,
-    PRIMARY KEY (pk_sigla_turma, pk_ano_letivo),
-    FOREIGN KEY (fk_codigo_disciplina) REFERENCES tb_disciplina(pk_codigo_disciplina) ON UPDATE CASCADE,
-    FOREIGN KEY (fk_cpf_professor) REFERENCES tb_professor(fk_cpf) ON UPDATE CASCADE
+    PRIMARY KEY (pk_sigla_turma, pk_ano_letivo)
+);
+
+CREATE TABLE tb_turma_disciplina (
+    fk_sigla_turma char(2) NOT NULL,
+    fk_ano_letivo date NOT NULL,
+    fk_codigo_disciplina varchar(5) NOT NULL,
+    fk_cpf_professor char(11) NOT NULL,
+    PRIMARY KEY (fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina),
+    FOREIGN KEY (fk_sigla_turma, fk_ano_letivo) REFERENCES tb_turmas(pk_sigla_turma, pk_ano_letivo) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (fk_codigo_disciplina) REFERENCES tb_disciplina(pk_codigo_disciplina) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (fk_cpf_professor) REFERENCES tb_professor(fk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE tb_avaliacao(
-	pk_data_avaliacao date NOT NULL,
+    pk_data_avaliacao date NOT NULL,
     tipo enum('Prova','Trabalho'),
     pk_bimestre enum('1º','2º','3º','4º') NOT NULL,
-	fk_sigla_turma varchar(5) NOT NULL,
-    PRIMARY KEY (pk_data_avaliacao, pk_bimestre, fk_sigla_turma),
-    FOREIGN KEY (fk_sigla_turma) REFERENCES tb_turmas(pk_sigla_turma) ON UPDATE CASCADE ON DELETE RESTRICT
+    fk_sigla_turma char(2) NOT NULL,
+    fk_ano_letivo date NOT NULL,
+    fk_codigo_disciplina varchar(5) NOT NULL, -- Adicionado
+    PRIMARY KEY (pk_data_avaliacao, pk_bimestre, fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina),
+    FOREIGN KEY (fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina) REFERENCES tb_turma_disciplina(fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE tb_notas (
@@ -331,38 +319,38 @@ CREATE TABLE tb_notas (
     fk_codigo_disciplina varchar(5) NOT NULL,
     fk_bimestre enum('1º','2º','3º','4º') NOT NULL,
     fk_data_avaliacao date NOT NULL,
-    fk_sigla_turma varchar(5) NOT NULL,
+    fk_sigla_turma char(2) NOT NULL,
+    fk_ano_letivo date NOT NULL,
     valor_nota decimal(4,2) NOT NULL,
     data_lancamento timestamp DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (fk_ra, fk_codigo_disciplina, fk_bimestre, fk_data_avaliacao),
     FOREIGN KEY (fk_ra) REFERENCES tb_matricula(pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY (fk_codigo_disciplina) REFERENCES tb_disciplina(pk_codigo_disciplina) ON UPDATE CASCADE ON DELETE RESTRICT,
-    FOREIGN KEY (fk_data_avaliacao, fk_bimestre, fk_sigla_turma) REFERENCES tb_avaliacao(pk_data_avaliacao, pk_bimestre, fk_sigla_turma) 
-        ON UPDATE CASCADE ON DELETE RESTRICT,
-	CONSTRAINT chk_valor_nota CHECK (valor_nota >= 0 AND valor_nota <= 10)
+    FOREIGN KEY (fk_data_avaliacao, fk_bimestre, fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina) REFERENCES tb_avaliacao(pk_data_avaliacao, pk_bimestre, fk_sigla_turma, fk_ano_letivo, fk_codigo_disciplina) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_valor_nota CHECK (valor_nota >= 0 AND valor_nota <= 10)
 );
 
 CREATE TABLE tb_aluno_turma (
     fk_ra INT NOT NULL,
-    fk_sigla_turma VARCHAR(2) NOT NULL,
+    fk_sigla_turma char(2) NOT NULL,
     fk_ano_letivo date NOT NULL,
     data_entrada DATE NOT NULL,
     situacao_aluno ENUM('Ativo', 'Transferido', 'Ouvinte') DEFAULT 'Ativo',
     PRIMARY KEY (fk_ra, fk_sigla_turma, fk_ano_letivo),
-	FOREIGN KEY (fk_ra) REFERENCES tb_matricula(pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT,
-	FOREIGN KEY (fk_sigla_turma, fk_ano_letivo) REFERENCES tb_turmas(pk_sigla_turma, pk_ano_letivo) ON UPDATE CASCADE ON DELETE RESTRICT
+    FOREIGN KEY (fk_ra) REFERENCES tb_matricula(pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (fk_sigla_turma, fk_ano_letivo) REFERENCES tb_turmas(pk_sigla_turma, pk_ano_letivo) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE tb_grade_horaria(
-	horario_inicio time,
-    ano_letivo date,
-    dia_aula enum('Segunda','Terça','Quarta','Quinta','Sexta'),
-	fk_ra int NOT NULL,
+    horario_inicio time NOT NULL,
+    ano_letivo date NOT NULL,
+    dia_aula enum('Segunda','Terça','Quarta','Quinta','Sexta') NOT NULL,
+    fk_ra int NOT NULL,
+    PRIMARY KEY (fk_ra, ano_letivo, dia_aula, horario_inicio),
     FOREIGN KEY (fk_ra) REFERENCES tb_matricula(pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
 CREATE TABLE tb_responsavel(
-	fk_cpf char(11) NOT NULL,
+    fk_cpf char(11) NOT NULL,
     pode_retirar_aluno bool DEFAULT true,
     PRIMARY KEY (fk_cpf),
     FOREIGN KEY (fk_cpf) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT
@@ -386,10 +374,24 @@ CREATE TABLE tb_ocorrencia_disciplinar (
     data_inicio_suspensao DATE NULL,
     data_fim_suspensao DATE NULL,
     PRIMARY KEY (fk_ra, pk_data_ocorrencia, pk_hora_ocorrencia),
-	FOREIGN KEY (fk_ra) REFERENCES tb_matricula (pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT,
-	FOREIGN KEY (fk_cpf_emissor) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (fk_ra) REFERENCES tb_matricula (pk_ra) ON UPDATE CASCADE ON DELETE RESTRICT,
+    FOREIGN KEY (fk_cpf_emissor) REFERENCES tb_pessoa (pk_cpf) ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT chk_periodo_suspensao CHECK (data_fim_suspensao >= data_inicio_suspensao)
 );
+
+DELIMITER //
+CREATE TRIGGER tg_bloquear_pgto_contrato_inativo
+BEFORE INSERT ON tb_folha_pagamento
+FOR EACH ROW
+BEGIN
+    DECLARE v_status BOOLEAN;
+    SELECT status_contrato INTO v_status FROM tb_contrato WHERE pk_id_contrato = NEW.fk_id_contrato;
+    IF v_status = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Erro: Não é possível gerar folha para contrato inativo.';
+    END IF;
+END; //
+DELIMITER ;
 
 DELIMITER //
 CREATE TRIGGER tg_validar_aluno_na_turma
@@ -397,12 +399,61 @@ BEFORE INSERT ON tb_notas
 FOR EACH ROW
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM tb_aluno_turma 
-        WHERE fk_ra = NEW.fk_ra 
+        SELECT 1 FROM tb_aluno_turma
+        WHERE fk_ra = NEW.fk_ra
         AND fk_sigla_turma = NEW.fk_sigla_turma
+        AND fk_ano_letivo = NEW.fk_ano_letivo 
     ) THEN
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Erro: O aluno não está matriculado nesta turma.';
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Erro: O aluno não está matriculado nesta turma no ano letivo correspondente.';
     END IF;
 END; //
+DELIMITER ;
+
+DELIMITER //
+CREATE TRIGGER tg_aplicar_desconto_mensalidade
+BEFORE INSERT ON tb_mensalidades
+FOR EACH ROW
+BEGIN
+    DECLARE v_percentual_total DECIMAL(5,2) DEFAULT 0;
+
+    SELECT IFNULL(SUM(percentual), 0) INTO v_percentual_total
+    FROM tb_desconto_aluno
+    WHERE fk_ra = NEW.fk_ra;
+
+    IF v_percentual_total > 100 THEN
+        SET v_percentual_total = 100;
+    END IF;
+
+    IF v_percentual_total > 0 THEN
+        SET NEW.valor_final = NEW.valor_completo - (NEW.valor_completo * (v_percentual_total / 100));
+    END IF;
+END; //
+DELIMITER ;
+
+DELIMITER //
+
+CREATE TRIGGER tg_validar_desconto_funcionario
+BEFORE INSERT ON tb_desconto_aluno
+FOR EACH ROW
+BEGIN
+    DECLARE v_possui_vinculo INT DEFAULT 0;
+
+    IF NEW.tipo_desconto = 'Filho de Funcionário' THEN
+        
+        SELECT COUNT(*) INTO v_possui_vinculo
+        FROM tb_matricula m
+        INNER JOIN tb_aluno_responsavel ar ON m.fk_cpf = ar.fk_cpf_aluno
+        INNER JOIN tb_contrato c ON ar.fk_cpf_responsavel = c.fk_cpf
+        WHERE m.pk_ra = NEW.fk_ra
+          AND c.status_contrato = TRUE;
+
+        IF v_possui_vinculo = 0 THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Bloqueado: O aluno não possui nenhum responsável com contrato de trabalho ATIVO na instituição.';
+        END IF;
+
+    END IF;
+END; //
+
 DELIMITER ;
